@@ -29,13 +29,26 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/fastapi-demo-hello-world:latest
 
+      - name: Check deploy key fingerprint
+        env:
+          EC2_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          test -n "$EC2_KEY" || { echo "EC2_SSH_KEY is empty"; exit 1; }
+          umask 077
+          printf '%s\n' "$EC2_KEY" > "$RUNNER_TEMP/ec2_key"
+          ssh-keygen -y -f "$RUNNER_TEMP/ec2_key" | ssh-keygen -lf -
+        
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
+          username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/fastapi-demo-hello-world:latest
-            docker rm -f fastapi-demo || true
-            docker run -d --name fastapi-demo -p 80:8000 ${{ secrets.DOCKERHUB_USERNAME }}/fastapi-demo-hello-world:latest
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/fastapi-demo-hello-world:latest
+            sudo docker rm -f fastapi-demo || true
+            sudo docker run -d \
+              --name fastapi-demo \
+              --restart unless-stopped \
+              -p 80:8000 \
+              ${{ secrets.DOCKERHUB_USERNAME }}/fastapi-demo-hello-world:latest
