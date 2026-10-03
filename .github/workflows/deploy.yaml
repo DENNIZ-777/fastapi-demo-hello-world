@@ -41,10 +41,14 @@ jobs:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1
         with:
-          host: 15.164.230.226
-          username: ubuntu
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/fastapi-demo-hello-world:latest
-            docker rm -f fastapi-demo || true
-            docker run -d --name fastapi-demo -p 80:8000 ${{ secrets.DOCKERHUB_USERNAME }}/fastapi-demo-hello-world:latest
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/fastapi-demo-hello-world:latest
+            sudo docker rm -f fastapi-demo || true
+            sudo docker run -d \
+              --name fastapi-demo \
+              --restart unless-stopped \
+              -p 80:8000 \
+              ${{ secrets.DOCKERHUB_USERNAME }}/fastapi-demo-hello-world:latest
